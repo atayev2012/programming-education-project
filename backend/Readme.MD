@@ -61,6 +61,6 @@ This repository contains the backend implementation of a web service designed to
 |--------|--------------------|---------------------------------|
 | POST   | `/api/auth/signup` | Register a new user             |
 | POST   | `/api/auth/login`  | Authenticate a user             |
-| GET    | `/api/user`       | Fetch user profile              |
+| GET    | `/api/users`       | Fetch user profile              |
 | POST   | `/api/challenges`  | Submit a programming challenge  |
 | GET    | `/api/leaderboard` | Retrieve leaderboard rankings   |
