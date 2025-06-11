@@ -1,5 +1,5 @@
 from database import Base
-from sqlalchemy import Column, Integer, BigInteger, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
@@ -14,6 +14,8 @@ class User(Base):
     first_name: Mapped[str] = mapped_column(String(50), nullable=False)
     last_name: Mapped[str] = mapped_column(String(50), nullable=False)
     middle_name: Mapped[str] = mapped_column(String(50), nullable=True)
+    date_of_birth: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
+    gender: Mapped[bool] = mapped_column(Boolean, nullable=False) # True for male and False for Female
     email_verified: Mapped[bool] = mapped_column(default=False, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(128), nullable=False)
     is_admin: Mapped[bool] = mapped_column(default=False, nullable=False)
