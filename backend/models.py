@@ -10,7 +10,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
-    phone: Mapped[str] = mapped_column(String(15), unique=True, nullable=False)
+    phone: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
     first_name: Mapped[str] = mapped_column(String(50), nullable=False)
     last_name: Mapped[str] = mapped_column(String(50), nullable=False)
     middle_name: Mapped[str] = mapped_column(String(50), nullable=True)
@@ -27,14 +27,14 @@ class User(Base):
     created_lessons = relationship("Lesson", back_populates="created_by_user")
     created_quizzes = relationship("Quiz", back_populates="created_by_user")
     created_quiz_questions = relationship("QuizQuestion", back_populates="created_by_user")
-    achievements = relationship("Achievement", secondary="user_achievements", back_populates="users")
+    achievements = relationship("UserAchievement", back_populates="user")
     xp = relationship("UserXP", back_populates="user")
     quiz_lives = relationship("UserQuizLife", back_populates="user")
     courses = relationship("UserCourse", back_populates="user")
     chapters = relationship("UserChapter", back_populates="user")
     lessons = relationship("UserLesson", back_populates="user")
     quizzes = relationship("UserQuiz", back_populates="user")
-    comments = relationship("CommentLesson", back_populates="user")
+    comments_lesson = relationship("CommentLesson", back_populates="user")
     comments_quiz = relationship("CommentQuiz", back_populates="user")
     notifications = relationship("InAppNotification", back_populates="user")
     support_tickets = relationship("SupportTicket", back_populates="user")
@@ -143,6 +143,7 @@ class QuizQuestionMultipleChoice(Base):
 
 
     question = relationship("QuizQuestion", back_populates="multiple_choice_options")
+    options = relationship("QuizQuestionMultipleChoiceOption", back_populates="question_multiple_choice")
 
 class QuizQuestionMultipleChoiceOption(Base):
     __tablename__ = 'quiz_question_multiple_choice_options'
@@ -164,6 +165,7 @@ class QuizQuestionSingleChoice(Base):
     question_description: Mapped[str] = mapped_column(String(512), nullable=True)
 
     question = relationship("QuizQuestion", back_populates="single_choice_options")
+    options = relationship("QuizQuestionSingleChoiceOption", back_populates="question_single_choice")
 
 class QuizQuestionSingleChoiceOption(Base):
     __tablename__ = 'quiz_question_single_choice_options'
@@ -250,6 +252,7 @@ class Achievement(Base):
     description: Mapped[str] = mapped_column(String(256), nullable=True)
     image_url: Mapped[str] = mapped_column(String(255), nullable=True)  # URL to the achievement image
     type: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g., 'course_completion', 'quiz_completion', 'chapter_completion', 'lesson_completion'
+    qty: Mapped[int] = mapped_column(Integer, nullable=False) # 
 
     users = relationship("UserAchievement", back_populates="achievement")
 
@@ -297,7 +300,7 @@ class CommentLesson(Base):
     is_approved: Mapped[bool] = mapped_column(default=True, nullable=False)  # Comment approval status
 
     lesson = relationship("Lesson", back_populates="comments")
-    user = relationship("User", back_populates="comments")
+    user = relationship("User", back_populates="comments_lesson")
 
 class CommentQuiz(Base):
     __tablename__ = 'comment_quizzes'
@@ -309,7 +312,8 @@ class CommentQuiz(Base):
     is_approved: Mapped[bool] = mapped_column(default=True, nullable=False)  # Comment approval status
 
     quiz = relationship("Quiz", back_populates="comments")
-    user = relationship("User", back_populates="comments")
+    user = relationship("User", back_populates="comments_quiz")
+
 
 class InAppNotification(Base):
     __tablename__ = 'in_app_notifications'
