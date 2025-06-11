@@ -19,6 +19,8 @@ def create_user():
         first_name=fake.first_name(),
         last_name=fake.last_name(),
         password_hash=fake.password(),
+        date_of_birth=fake.date_of_birth(),
+        gender=fake.boolean(),
     )
 
 def create_course(user_id):
@@ -64,6 +66,7 @@ def create_achievement(user_id):
     return Achievement(
         title=fake.word(),
         description=fake.text(),
+        qty=random.randint(1, 100),
         type=random.choice(["course_completion", "quiz_completion", "chapter_completion"]),
     )
 
