@@ -9,7 +9,7 @@ class Config:
     """
 
     # Database configuration
-    USER = os.getenv('USER')
+    USER = os.getenv('DB_USERNAME')
     PASSWORD = os.getenv('PASSWORD')
     HOST = os.getenv('HOST')
     PORT = os.getenv('PORT')
