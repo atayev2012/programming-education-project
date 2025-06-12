@@ -11,10 +11,9 @@ from config import config
 from datetime import datetime, timedelta, timezone
 
 
-
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# create new user
+# create new user endpoint
 @router.post("/sign_up", status_code=status.HTTP_201_CREATED)
 async def sign_up(user_data: UserSignUp, response: Response, session: SessionDep):  
     user_data_dict = user_data.model_dump()
@@ -48,58 +47,95 @@ async def sign_up(user_data: UserSignUp, response: Response, session: SessionDep
     await set_token_to_cookies(refresh_token, "refresh", response)
 
     return_value = {
-        "success": True,
-        "message": "New user was successfully created",
-        "details": user
+        "detail":{
+            "success": True,
+            "message": "New user was successfully created",
+            "data": user
+        }
     }
 
     return return_value
 
 
-@router.post("/token")
-async def login(form_data: UserLogin, response: Response, session: SessionDep):
+# login endpoint
+@router.post("/sign_in")
+async def sign_in(form_data: UserLogin, response: Response, session: SessionDep):
     statement = select(User).filter(User.username == form_data.username)
-    user_data = await session.execute(statement)
+    try:
+        user_data = await session.execute(statement)
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "success": False,
+                "message": "Server internal error occured. Try again later."
+            })
     user = user_data.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "success": False,
+                "message": f"User with username {form_data.username} was not found."
+            }
+        )
+
     verification_result = verify_password(form_data.password, user.password_hash)
-    
-    
-    # if not user or user['password'] != form_data.password:
-    #     raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    # token = create_access_token(form_data.username)
 
     if verification_result:
         access_token = create_token({"username":user.username})
         refresh_token = create_token({"username":user.username}, type="refresh")
-    response.set_cookie(
-        key="access_token", 
-        value=access_token, 
-        httponly=True,  # Makes the cookie HTTP-only (cannot be accessed via JavaScript)
-        secure=True,  # Use secure flag for HTTPS connections
-        max_age=timedelta(minutes=config.JWT_EXPIRATION_TIME),  # Expiration time
-        expires=datetime.now(timezone.utc) + timedelta(minutes=config.JWT_EXPIRATION_TIME)  # Cookie expiration
-    )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "success": False,
+                "message": "Wrong password",
+                "data": None
+            }
+        )
+    
+    await set_token_to_cookies(access_token, "access", response)
+    await set_token_to_cookies(refresh_token, "refresh", response)
 
-    response.set_cookie(
-        key="refresh_token", 
-        value=refresh_token, 
-        httponly=True,  # Makes the cookie HTTP-only (cannot be accessed via JavaScript)
-        secure=True,  # Use secure flag for HTTPS connections
-        max_age=timedelta(days=config.JWT_REFRESH_EXPIRATION_TIME),  # Expiration time
-        expires=datetime.now(timezone.utc) + timedelta(days=config.JWT_REFRESH_EXPIRATION_TIME)  # Cookie expiration
-    )
+    return_value = {
+        "detail": {
+            "success": True,
+            "message": f"User with username {form_data.username} successfully signed in.",
+            "data": None
+        }
+    }
+    return return_value
 
-    return {"access_token": access_token, "token_type": "bearer" } #{"access_token": token, "token_type": "bearer"}
-
-
-@router.post("/logout")
-async def logout(response: Response):
+# logout endpoint
+@router.post("/sign_out")
+async def sign_out(response: Response):
     response.delete_cookie(key="access_token")
-    return {"message": "Logged out successfully"}
+    response.delete_cookie(key="refresh_token")
+    return {
+        "detail": {
+            "success": True,
+            "message": "User signed out successfully",
+            "data": None
+        }
+    }
 
+# get current user
+@router.get("/active_user")
+async def active_user(user = Depends(get_user_by_username)):
+    user_data = user.__dict__
+    user_data.pop("is_admin")
+    user_data.pop("is_active")
+    user_data.pop("created_at")
+    user_data.pop("updated_at")
+    user_data.pop("id")
+    user_data.pop("password_hash")
 
-@router.get("/users/me")
-async def read_users_me(user = Depends(get_user_by_username)):
-
-    return {"message": "This is the user information", "username": user}
+    return {
+        "detail":{
+            "success": True,
+            "message": "Current active user found",
+            "data": user_data
+        }
+    }
