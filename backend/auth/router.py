@@ -1,19 +1,60 @@
-from fastapi import APIRouter, Depends, Response, Request, HTTPException
+from fastapi import APIRouter, Depends, Response, Request, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from auth.schemas import UserLogin
+from auth.schemas import UserLogin, UserSignUp
 from models import User
 from database import SessionDep
 from sqlalchemy import select
-from auth.utils import verify_password, create_token, get_username_from_token, get_user_by_username
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from auth.utils import (verify_password, create_token, get_password_hash, 
+                        get_user_by_username, set_token_to_cookies)
 from config import config
 from datetime import datetime, timedelta, timezone
+
+
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # create new user
-@router.post("/sign_up")
-async def sign_up():
-    pass
+@router.post("/sign_up", status_code=status.HTTP_201_CREATED)
+async def sign_up(user_data: UserSignUp, response: Response, session: SessionDep):  
+    user_data_dict = user_data.model_dump()
+    user_data_dict.setdefault("password_hash", get_password_hash(user_data_dict["password"]))
+    user_data_dict.pop("password")
+    user = User(**user_data_dict)
+    try:
+        session.add(user)
+        await session.commit()
+    except IntegrityError as e:
+        error_data = str(e.orig).split("DETAIL")[1]
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "success": False,
+                "message": f"Integrity constraint violation{error_data}"
+            })
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "success": False,
+                "message": "Server internal error occured. Try again later."
+            })
+    
+    # create tokens for user
+    access_token = create_token({"username": user.username}, type="access")
+    refresh_token = create_token({"username": user.username}, type="refresh")
+
+    await set_token_to_cookies(access_token, "access", response)
+    await set_token_to_cookies(refresh_token, "refresh", response)
+
+    return_value = {
+        "success": True,
+        "message": "New user was successfully created",
+        "details": user
+    }
+
+    return return_value
+
 
 @router.post("/token")
 async def login(form_data: UserLogin, response: Response, session: SessionDep):
