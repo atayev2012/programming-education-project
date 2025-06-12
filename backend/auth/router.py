@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, Response, Request, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from auth.schemas import UserLogin, UserSignUp
 from models import User
 from database import SessionDep
@@ -7,8 +6,6 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from auth.utils import (verify_password, create_token, get_password_hash, 
                         get_user_by_username, set_token_to_cookies)
-from config import config
-from datetime import datetime, timedelta, timezone
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
