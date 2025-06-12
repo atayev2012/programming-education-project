@@ -13,6 +13,14 @@ from sqlalchemy.exc import SQLAlchemyError
 ####### WORKING WITH PASSWORDS & TOKENS #########
 # hashing password
 def get_password_hash(password: str) -> str:
+    '''Input plain password and receive hash as string
+
+    Args:
+        password (str): Plain password
+
+    Returns:
+        str: Hash of a plain password 
+    '''
     encoded_pass = password.encode("utf-8")
     salt = bcrypt.gensalt()
     hash = bcrypt.hashpw(encoded_pass, salt)
@@ -101,10 +109,36 @@ async def get_username_from_token(request: Request, response: Response) -> str |
             # if refresh token is expired or invalid, then raise error of unauthorized access
             print(e)
             raise unauthorized_err
+
+async def set_token_to_cookies(token: str, type: str, response: Response) -> None:
+    '''
+    Args:
+    token (str): token
+    type (str): access or refresh
+    response (fastapi.Response): response where cookie should be set
+
+    Returns:
+    None
+    '''
+    if type not in ["access", "refresh"]:
+        raise ValueError("type must be either 'access' or 'refresh'")
+
+    exp_minutes = config.JWT_EXPIRATION_TIME if type == "access" else config.JWT_REFRESH_EXPIRATION_TIME * 24 * 60
+
+    response.set_cookie(
+                key=type + "_token", 
+                value=token, 
+                httponly=True,  # Makes the cookie HTTP-only
+                secure=True,  # Use secure flag for HTTPS connections
+                max_age=timedelta(minutes=exp_minutes),  # Expiration time
+                expires=datetime.now(timezone.utc) + timedelta(minutes=exp_minutes)  # Cookie expiration
+            )
+
 ########################################
 
 
 ####### WORKING WITH USER FROM DATABASE ###########
+# find user by user name
 async def get_user_by_username(session: SessionDep, username: str | None = Depends(get_username_from_token)):
     statement = select(User).filter(User.username == username)
     try:
@@ -117,6 +151,13 @@ async def get_user_by_username(session: SessionDep, username: str | None = Depen
                 "success": False,
                 "message": "Server internal error occured. Try again later."
             })
+
+# find user by filter
+async def find_user_by_filter(filter_by,  session: SessionDep) -> User | None:
+    statement = select(User).filter_by(**filter_by)
+    data = await session.execute(statement)
+    user = data.scalar_one_or_none()
+    return user
 ###################################################
     
 
