@@ -4,7 +4,7 @@ from datetime import date
 class UserSignUp(BaseModel):
     username: str = Field(max_length=50, description="unique username", examples=["nerd1995"])
     email: EmailStr = Field(max_length=100, description="user email address", examples=["test@mail.ru"])
-    phone: int = Field(description="phone number with country code", examples="79999999999")
+    phone: str = Field(description="phone number with country code", examples=["79999999999"])
     first_name: str = Field(max_length=50, description="first name", examples=["George"])
     last_name: str = Field(max_length=50, description="last name", examples=["Washington"])
     middle_name: str | None = Field(max_length=50, description="optional - middle name")
