@@ -24,23 +24,23 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False) 
 
     # Relationships
-    created_chapters = relationship("Chapter", back_populates="created_by_user")
-    created_courses = relationship("Course", back_populates="created_by_user")
-    created_lessons = relationship("Lesson", back_populates="created_by_user")
-    created_quizzes = relationship("Quiz", back_populates="created_by_user")
-    created_quiz_questions = relationship("QuizQuestion", back_populates="created_by_user")
-    achievements = relationship("UserAchievement", back_populates="user")
-    xp = relationship("UserXP", back_populates="user")
-    quiz_lives = relationship("UserQuizLife", back_populates="user")
-    courses = relationship("UserCourse", back_populates="user")
-    chapters = relationship("UserChapter", back_populates="user")
-    lessons = relationship("UserLesson", back_populates="user")
-    quizzes = relationship("UserQuiz", back_populates="user")
-    comments_lesson = relationship("CommentLesson", back_populates="user")
-    comments_quiz = relationship("CommentQuiz", back_populates="user")
-    notifications = relationship("InAppNotification", back_populates="user")
-    support_tickets = relationship("SupportTicket", back_populates="user")
-    ticket_ratings = relationship("SupportTicketRating", back_populates="user")
+    created_chapters = relationship("Chapter", back_populates="created_by_user", cascade="all, delete-orphan")
+    created_courses = relationship("Course", back_populates="created_by_user", cascade="all, delete-orphan")
+    created_lessons = relationship("Lesson", back_populates="created_by_user", cascade="all, delete-orphan")
+    created_quizzes = relationship("Quiz", back_populates="created_by_user", cascade="all, delete-orphan")
+    created_quiz_questions = relationship("QuizQuestion", back_populates="created_by_user", cascade="all, delete-orphan")
+    achievements = relationship("UserAchievement", back_populates="user", cascade="all, delete")
+    xp = relationship("UserXP", back_populates="user", cascade="all, delete")
+    quiz_lives = relationship("UserQuizLife", back_populates="user", cascade="all, delete")
+    courses = relationship("UserCourse", back_populates="user", cascade="all, delete")
+    chapters = relationship("UserChapter", back_populates="user", cascade="all, delete")
+    lessons = relationship("UserLesson", back_populates="user", cascade="all, delete")
+    quizzes = relationship("UserQuiz", back_populates="user", cascade="all, delete")
+    comments_lesson = relationship("CommentLesson", back_populates="user", cascade="all, delete-orphan")
+    comments_quiz = relationship("CommentQuiz", back_populates="user", cascade="all, delete-orphan")
+    notifications = relationship("InAppNotification", back_populates="user", cascade="all, delete")
+    support_tickets = relationship("SupportTicket", back_populates="user", cascade="all, delete-orphan")
+    ticket_ratings = relationship("SupportTicketRating", back_populates="user", cascade="all, delete-orphan")
 
 
 class Chapter(Base):
@@ -66,7 +66,7 @@ class Course(Base):
     description: Mapped[str] = mapped_column(String(500), nullable=True)
     created_by: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
 
-    chapters = relationship("Chapter", back_populates="course")
+    chapters = relationship("Chapter", back_populates="course", cascade="all, delete")
     created_by_user = relationship("User", back_populates="created_courses")
     users = relationship("UserCourse", back_populates="course")
 
@@ -78,14 +78,14 @@ class Lesson(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str] = mapped_column(String(256), nullable=False)
-    chapter_id: Mapped[int] = mapped_column(ForeignKey('chapters.id'), nullable=False)
+    chapter_id: Mapped[int] = mapped_column(ForeignKey('chapters.id', ondelete="CASCADE"), nullable=False)
     created_by: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
 
     chapter = relationship("Chapter", back_populates="lessons")
     created_by_user = relationship("User", back_populates="created_lessons")
-    materials = relationship("LessonMaterial", back_populates="lesson")
-    quizzes = relationship("Quiz", back_populates="lesson")
-    comments = relationship("CommentLesson", back_populates="lesson")
+    materials = relationship("LessonMaterial", back_populates="lesson", cascade="all, delete")
+    quizzes = relationship("Quiz", back_populates="lesson", cascade="all, delete")
+    comments = relationship("CommentLesson", back_populates="lesson", cascade="all, delete")
     users = relationship("UserLesson", back_populates="lesson")
 
 
@@ -94,7 +94,7 @@ class LessonMaterial(Base):
     __tablename__ = 'lesson_materials'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    lesson_id: Mapped[int] = mapped_column(ForeignKey('lessons.id'), nullable=False)
+    lesson_id: Mapped[int] = mapped_column(ForeignKey('lessons.id', ondelete="CASCADE"), nullable=False)
     material_type: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g., 'video', 'photo', 'text'
     material_content: Mapped[str] = mapped_column(String(5000), nullable=False)  # url or text content
     created_by: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
@@ -108,13 +108,13 @@ class Quiz(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str] = mapped_column(String(256), nullable=True)
-    lesson_id: Mapped[int] = mapped_column(ForeignKey('lessons.id'), nullable=False)
+    lesson_id: Mapped[int] = mapped_column(ForeignKey('lessons.id', ondelete="CASCADE"), nullable=False)
     created_by: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
 
     lesson = relationship("Lesson", back_populates="quizzes")
-    questions = relationship("QuizQuestion", back_populates="quiz")
+    questions = relationship("QuizQuestion", back_populates="quiz", cascade="all, delete")
     created_by_user = relationship("User", back_populates="created_quizzes")
-    comments = relationship("CommentQuiz", back_populates="quiz")
+    comments = relationship("CommentQuiz", back_populates="quiz", cascade="all, delete")
     users = relationship("UserQuiz", back_populates="quiz")
 
 
@@ -122,7 +122,7 @@ class QuizQuestion(Base):
     __tablename__ = 'quiz_questions'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    quiz_id: Mapped[int] = mapped_column(ForeignKey('quizzes.id'), nullable=False)
+    quiz_id: Mapped[int] = mapped_column(ForeignKey('quizzes.id', ondelete="CASCADE"), nullable=False)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str] = mapped_column(String(256), nullable=True)
     question_type: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g., 'multiple_choice', 'single_choice', 'short_answer'
@@ -130,28 +130,28 @@ class QuizQuestion(Base):
 
     quiz = relationship("Quiz", back_populates="questions")
     created_by_user = relationship("User", back_populates="created_quiz_questions")
-    multiple_choice_options = relationship("QuizQuestionMultipleChoice", back_populates="question")
-    single_choice_options = relationship("QuizQuestionSingleChoice", back_populates="question")
-    short_answer_options = relationship("QuizQuestionShortAnswer", back_populates="question")
+    multiple_choice_options = relationship("QuizQuestionMultipleChoice", back_populates="question", cascade="all, delete")
+    single_choice_options = relationship("QuizQuestionSingleChoice", back_populates="question", cascade="all, delete")
+    short_answer_options = relationship("QuizQuestionShortAnswer", back_populates="question", cascade="all, delete")
 
 
 class QuizQuestionMultipleChoice(Base):
     __tablename__ = 'quiz_question_multiple_choice'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    question_id: Mapped[int] = mapped_column(ForeignKey('quiz_questions.id'), nullable=False)
+    question_id: Mapped[int] = mapped_column(ForeignKey('quiz_questions.id', ondelete="CASCADE"), nullable=False)
     question_title: Mapped[str] = mapped_column(String(100), nullable=False)
     question_description: Mapped[str] = mapped_column(String(512), nullable=True)
 
 
     question = relationship("QuizQuestion", back_populates="multiple_choice_options")
-    options = relationship("QuizQuestionMultipleChoiceOption", back_populates="question_multiple_choice")
+    options = relationship("QuizQuestionMultipleChoiceOption", back_populates="question_multiple_choice", cascade="all, delete")
 
 class QuizQuestionMultipleChoiceOption(Base):
     __tablename__ = 'quiz_question_multiple_choice_options'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    question_multiple_choice_id: Mapped[int] = mapped_column(ForeignKey('quiz_question_multiple_choice.id'), nullable=False)
+    question_multiple_choice_id: Mapped[int] = mapped_column(ForeignKey('quiz_question_multiple_choice.id', ondelete="CASCADE"), nullable=False)
     choice_text: Mapped[str] = mapped_column(String(256), nullable=False)
     is_correct: Mapped[bool] = mapped_column(default=False, nullable=False)
 
@@ -162,18 +162,18 @@ class QuizQuestionSingleChoice(Base):
     __tablename__ = 'quiz_question_single_choice'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    question_id: Mapped[int] = mapped_column(ForeignKey('quiz_questions.id'), nullable=False)
+    question_id: Mapped[int] = mapped_column(ForeignKey('quiz_questions.id', ondelete="CASCADE"), nullable=False)
     question_title: Mapped[str] = mapped_column(String(100), nullable=False)
     question_description: Mapped[str] = mapped_column(String(512), nullable=True)
 
     question = relationship("QuizQuestion", back_populates="single_choice_options")
-    options = relationship("QuizQuestionSingleChoiceOption", back_populates="question_single_choice")
+    options = relationship("QuizQuestionSingleChoiceOption", back_populates="question_single_choice", cascade="all, delete")
 
 class QuizQuestionSingleChoiceOption(Base):
     __tablename__ = 'quiz_question_single_choice_options'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    question_single_choice_id: Mapped[int] = mapped_column(ForeignKey('quiz_question_single_choice.id'), nullable=False)
+    question_single_choice_id: Mapped[int] = mapped_column(ForeignKey('quiz_question_single_choice.id', ondelete="CASCADE"), nullable=False)
     choice_text: Mapped[str] = mapped_column(String(256), nullable=False)
     is_correct: Mapped[bool] = mapped_column(default=False, nullable=False)
 
@@ -183,7 +183,7 @@ class QuizQuestionShortAnswer(Base):
     __tablename__ = 'quiz_question_short_answer'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    question_id: Mapped[int] = mapped_column(ForeignKey('quiz_questions.id'), nullable=False)
+    question_id: Mapped[int] = mapped_column(ForeignKey('quiz_questions.id', ondelete="CASCADE"), nullable=False)
     question_title: Mapped[str] = mapped_column(String(100), nullable=False)
     question_description: Mapped[str] = mapped_column(String(512), nullable=True)
     correct_answer: Mapped[str] = mapped_column(String(512), nullable=False)
@@ -195,8 +195,8 @@ class UserCourse(Base):
     __tablename__ = 'user_courses'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
-    course_id: Mapped[int] = mapped_column(ForeignKey('courses.id'), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+    course_id: Mapped[int] = mapped_column(ForeignKey('courses.id', ondelete="CASCADE"), nullable=False)
     chapter_total: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # Total chapters in the course
     chapter_completed: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # Completed chapters
     is_completed: Mapped[bool] = mapped_column(default=False, nullable=False)  # Course completion status
@@ -210,8 +210,8 @@ class UserChapter(Base):
     __tablename__ = 'user_chapters'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
-    chapter_id: Mapped[int] = mapped_column(ForeignKey('chapters.id'), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+    chapter_id: Mapped[int] = mapped_column(ForeignKey('chapters.id', ondelete="CASCADE"), nullable=False)
     lesson_total: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # Total lessons in the chapter
     lesson_completed: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # Completed lessons
     is_completed: Mapped[bool] = mapped_column(default=False, nullable=False)  # Chapter completion status
@@ -225,8 +225,8 @@ class UserLesson(Base):
     __tablename__ = 'user_lessons'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
-    lesson_id: Mapped[int] = mapped_column(ForeignKey('lessons.id'), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+    lesson_id: Mapped[int] = mapped_column(ForeignKey('lessons.id', ondelete="CASCADE"), nullable=False)
     is_completed: Mapped[bool] = mapped_column(default=False, nullable=False)  # Lesson completion status
     progress: Mapped[float] = mapped_column(default=0.0, nullable=False)  # Progress in percentage
 
@@ -237,8 +237,8 @@ class UserQuiz(Base):
     __tablename__ = 'user_quizzes'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
-    quiz_id: Mapped[int] = mapped_column(ForeignKey('quizzes.id'), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+    quiz_id: Mapped[int] = mapped_column(ForeignKey('quizzes.id', ondelete="CASCADE"), nullable=False)
     score: Mapped[float] = mapped_column(default=0.0, nullable=False)  # User's score in the quiz
     is_completed: Mapped[bool] = mapped_column(default=False, nullable=False)  # Quiz completion status
 
@@ -256,15 +256,15 @@ class Achievement(Base):
     type: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g., 'course_completion', 'quiz_completion', 'chapter_completion', 'lesson_completion'
     qty: Mapped[int] = mapped_column(Integer, nullable=False) # 
 
-    users = relationship("UserAchievement", back_populates="achievement")
+    users = relationship("UserAchievement", back_populates="achievement", cascade="all, delete")
 
 
 class UserAchievement(Base):
     __tablename__ = 'user_achievements'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
-    achievement_id: Mapped[int] = mapped_column(ForeignKey('achievements.id'), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
+    achievement_id: Mapped[int] = mapped_column(ForeignKey('achievements.id', ondelete="CASCADE"), nullable=False)
     date_earned: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
 
     user = relationship("User", back_populates="achievements")
@@ -274,7 +274,7 @@ class UserXP(Base):
     __tablename__ = 'user_xp'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
     xp: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # Total XP earned by the user
     level: Mapped[int] = mapped_column(Integer, default=1, nullable=False)  # User's current level
 
@@ -286,7 +286,7 @@ class UserQuizLife(Base):
     __tablename__ = 'user_quiz_lives'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
     lives: Mapped[int] = mapped_column(Integer, default=3, nullable=False)  # Number of lives available for the user
 
     user = relationship("User", back_populates="quiz_lives")
@@ -321,7 +321,7 @@ class InAppNotification(Base):
     __tablename__ = 'in_app_notifications'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete="CASCADE"), nullable=False)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     content: Mapped[str] = mapped_column(String(500), nullable=False)
     image_url: Mapped[str] = mapped_column(String(255), nullable=True)  # URL to the notification image
@@ -340,14 +340,14 @@ class SupportTicket(Base):
     status_description: Mapped[str] = mapped_column(String(500), nullable=True)  # Additional status information
 
     user = relationship("User", back_populates="support_tickets")
-    ratings = relationship("SupportTicketRating", back_populates="ticket")
+    ratings = relationship("SupportTicketRating", back_populates="ticket", cascade="all, delete")
 
 
 class SupportTicketRating(Base):
     __tablename__ = 'support_ticket_ratings'
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    ticket_id: Mapped[int] = mapped_column(ForeignKey('support_tickets.id'), nullable=False)
+    ticket_id: Mapped[int] = mapped_column(ForeignKey('support_tickets.id', ondelete="CASCADE"), nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
     rating: Mapped[int] = mapped_column(Integer, nullable=False)  # Rating value (e.g., 1-5 stars)
     comment: Mapped[str] = mapped_column(String(500), nullable=True)  # Optional comment
