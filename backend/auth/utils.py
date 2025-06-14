@@ -9,6 +9,9 @@ from database import SessionDep
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
+import smtplib
+from email.mime.text import MIMEText
+
 
 ####### WORKING WITH PASSWORDS & TOKENS #########
 # hashing password
@@ -35,7 +38,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 
 # create access/refresh token (data will contain only username)
-def create_token(data: dict, type: str = "access"):
+def create_token(data: dict, type: str = "access", secret_key: str = config.JWT_SECRET_KEY) -> str:
     if type not in ["access", "refresh"]:
         raise ValueError("type must be either 'access' or 'refresh'")
 
@@ -44,10 +47,32 @@ def create_token(data: dict, type: str = "access"):
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=exp_minutes)
     to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, config.JWT_SECRET_KEY, algorithm=config.JWT_ALGORITHM)
+    return jwt.encode(to_encode, secret_key, algorithm=config.JWT_ALGORITHM)
 ########################################
 
 ######## UTILS AS DEPENDENCIES #########
+# just get username
+async def get_username(token: str, secret_key = config.JWT_SECRET_KEY) -> str | None:
+    # proceed with decoding access token if it exists
+    invalid_err = HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail={
+            "success": False,
+            "message": "Token is invalid"
+        }
+        )
+
+    try:
+        if token is None:
+            # raise error of unauthorized access because no access token was found
+            raise JWTError()
+    
+        token_credentials = jwt.decode(token, secret_key, algorithms=[config.JWT_ALGORITHM])
+        return token_credentials["username"]
+    except (ExpiredSignatureError, JWTError):
+        raise invalid_err
+
+
 # read token from cookies and get user
 async def get_username_from_token(request: Request, response: Response) -> str | None:  
     # initialize http exception for invalid token
@@ -160,6 +185,33 @@ async def find_user_by_filter(filter_by,  session: SessionDep) -> User | None:
     return user
 ###################################################
     
+
+####### EMAIL VERIFICATION ##########
+async def send_email_verification_token(user: User):    
+    email_verification_token = create_token(
+        {"username": user.username},
+        secret_key=config.EMAIL_VERIFICATION_SECRET_KEY
+    )
+
+    link_to_send = config.WEB_APP_DOMAIN + f"/api/auth/email-verify/{email_verification_token}"
+
+
+    msg = MIMEText(f"Hello, {User.first_name}\n\nYour verification link is {link_to_send}") 
+    msg["Subject"] = "Testing email"
+    msg["From"] = config.EMAIL
+    msg["To"] = user.email
+
+    with smtplib.SMTP_SSL(config.EMAIL_SMTP_SERVER, config.EMAIL_SMTP_SERVER_PORT) as smtp_server:
+        # Login to the SMTP server using the sender's credentials.
+
+        smtp_server.login(config.EMAIL, config.EMAIL_PASS)
+        # Send the email. The sendmail function requires the sender's email, the list of recipients, and the email message as a string.
+        smtp_server.sendmail(config.EMAIL, user.email, msg.as_string())
+    # Print a message to console after successfully sending the email.
+    print("Message sent!")
+
+#####################################
+
 
 if __name__ == "__main__":
     pass
