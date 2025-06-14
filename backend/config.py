@@ -18,8 +18,16 @@ class Config:
     # JWT token configuration
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
     JWT_ALGORITHM = os.getenv('JWT_ALGORITHM')
-    JWT_EXPIRATION_TIME = os.getenv('JWT_EXPIRATION_TIME')
-    JWT_REFRESH_EXPIRATION_TIME = os.getenv('JWT_REFRESH_EXPIRATION_TIME')
+    JWT_EXPIRATION_TIME = int(os.getenv('JWT_EXPIRATION_TIME'))
+    JWT_REFRESH_EXPIRATION_TIME = int(os.getenv('JWT_REFRESH_EXPIRATION_TIME'))
+
+    # For email verification
+    EMAIL_VERIFICATION_SECRET_KEY = os.getenv('EMAIL_VERIFICATION_SECRET_KEY')
+    EMAIL_PASS = os.getenv("EMAIL_PASS")
+    EMAIL = os.getenv("EMAIL")
+
+    # Web App Domain name for urls
+    WEB_APP_DOMAIN = os.getenv('WEP_APP_DOMAIN')
 
     def get_db_url(self):
         """
@@ -43,3 +51,4 @@ if __name__ == "__main__":
     print(f"JWT_ALGORITHM: {config.JWT_ALGORITHM}")
     print(f"JWT_EXPIRATION_TIME: {config.JWT_EXPIRATION_TIME}")
     print(f"JWT_REFRESH_EXPIRATION_TIME: {config.JWT_REFRESH_EXPIRATION_TIME}")
+    print(f"EMAIL_VERIFICATION_SECRET_KEY: {config.EMAIL_VERIFICATION_SECRET_KEY}")
