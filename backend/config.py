@@ -25,6 +25,8 @@ class Config:
     EMAIL_VERIFICATION_SECRET_KEY = os.getenv('EMAIL_VERIFICATION_SECRET_KEY')
     EMAIL_PASS = os.getenv("EMAIL_PASS")
     EMAIL = os.getenv("EMAIL")
+    EMAIL_SMTP_SERVER = os.getenv("EMAIL_SMTP_SERVER")
+    EMAIL_SMTP_SERVER_PORT = int(os.getenv("EMAIL_SMTP_SERVER_PORT"))
 
     # Web App Domain name for urls
     WEB_APP_DOMAIN = os.getenv('WEP_APP_DOMAIN')
