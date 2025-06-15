@@ -50,6 +50,7 @@ class Chapter(Base):
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     course_id: Mapped[int] = mapped_column(ForeignKey('courses.id'), nullable=False)
     created_by: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
+    order: Mapped[int] = mapped_column(Integer, nullable=True)
 
     # Relationship to lessons and users
     course = relationship("Course", back_populates="chapters")
@@ -80,6 +81,7 @@ class Lesson(Base):
     description: Mapped[str] = mapped_column(String(256), nullable=False)
     chapter_id: Mapped[int] = mapped_column(ForeignKey('chapters.id', ondelete="CASCADE"), nullable=False)
     created_by: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
+    order: Mapped[int] = mapped_column(Integer, nullable=True)
 
     chapter = relationship("Chapter", back_populates="lessons")
     created_by_user = relationship("User", back_populates="created_lessons")
@@ -127,6 +129,7 @@ class QuizQuestion(Base):
     description: Mapped[str] = mapped_column(String(256), nullable=True)
     question_type: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g., 'multiple_choice', 'single_choice', 'short_answer'
     created_by: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
+    order: Mapped[int] = mapped_column(Integer, nullable=True)
 
     quiz = relationship("Quiz", back_populates="questions")
     created_by_user = relationship("User", back_populates="created_quiz_questions")
