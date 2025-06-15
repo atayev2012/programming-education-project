@@ -100,6 +100,7 @@ class LessonMaterial(Base):
     material_type: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g., 'video', 'photo', 'text'
     material_content: Mapped[str] = mapped_column(String(5000), nullable=False)  # url or text content
     created_by: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
+    order: Mapped[int] = mapped_column(Integer, nullable=True)
 
     lesson = relationship("Lesson", back_populates="materials")
 
