@@ -5,7 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload, load_only
 from database import SessionDep
 from user.utils import (
-    get_course_list_progress, get_my_course_list, get_chapters_progress
+    get_course_list_progress, get_my_course_list, get_chapters_progress,
+    get_lessons_progress
     )
 
 router = APIRouter(
@@ -50,17 +51,24 @@ async def chapters(course_id: int, session: SessionDep, user = Depends(get_user_
     }
 
 
-@router.get("chapter/lessons/{chapter_id}")
+@router.get("/lessons/{chapter_id}")
 async def lessons(chapter_id: int, session: SessionDep, user: User = Depends(get_user_by_username)):
-    pass
-
+    lessons = await get_lessons_progress(chapter_id, user, session)
+    return {
+        "details": {
+            "success": True,
+            "Message": f"List of lessons for chapter with id:{chapter_id}",
+            "data": lessons
+        }
+    }
 '''
 List of endpoints to prepare
 =============================
 1. list all courses -> mark subscribed courses === DONE
 2. list all my courses with progress ==== DONE
 3. load course chapters with progress === DONE
-4. load course lessons -> mark completed (load comments as well)
+4. load course lessons -> mark completed === DONE
+4.5 load lesson with comments(load comments as well)
 5. load course quizzes -> mark completed (load comments as well)
 6. load notifications
 =========
