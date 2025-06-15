@@ -1,10 +1,10 @@
-from models import User, Course, UserCourse
+from models import User, Course, UserCourse, Chapter, Lesson, CommentLesson, UserLesson, UserQuiz
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import load_only, selectinload, joinedload
+from sqlalchemy.orm import load_only, selectinload, joinedload, with_loader_criteria
 from utils import internal_error
 from typing import List, Any
-from user.schemas import MyCourses, MyChapters
+from user.schemas import MyCourses, MyChapters, MyLessons, MyLessonMaterials
 from fastapi import Depends
 from database import SessionDep, Base
 
@@ -59,15 +59,6 @@ async def get_my_course_list(user: User, session: SessionDep) -> List[MyCourses]
     return my_courses
 
 
-
-
-
-
-
-
-
-
-
 # # get any model by id
 # async def get_item_by_id(id: int, model: Base, session: SessionDep) -> Any | None:
 #     statement = select(model).filter(model.id == id)
@@ -76,7 +67,7 @@ async def get_my_course_list(user: User, session: SessionDep) -> List[MyCourses]
 #     return item
 
 
-# get list of all chapters of course
+# get list of all chapters of a course
 async def get_chapters(course_id: int, session: SessionDep) -> MyChapters | None:
     try:
         statement =  select(Course).filter(Course.id == course_id).options(selectinload(Course.chapters))
@@ -90,7 +81,8 @@ async def get_chapters(course_id: int, session: SessionDep) -> MyChapters | None
         return my_cahpters
     except SQLAlchemyError:
         raise internal_error
-    
+
+# get list of all chapters of a course with progress
 async def get_chapters_progress(course_id:int, user: User, session: SessionDep):
     chapters = await get_chapters(course_id, session)
 
@@ -108,3 +100,70 @@ async def get_chapters_progress(course_id:int, user: User, session: SessionDep):
     except SQLAlchemyError:
         raise internal_error
     
+
+# get list of all lessons of a chapter
+async def get_lessons(chapter_id: int, session: SessionDep) -> List[MyLessons]:
+    try:
+        # load chapter based on id
+        statement =  select(Chapter).filter(Chapter.id == chapter_id).options(
+    selectinload(Chapter.lessons).options(selectinload(Lesson.quizzes)))
+        data = await session.execute(statement)
+        chapter = data.scalar_one_or_none()
+
+        # sort all lessons based on order
+        chapter.lessons.sort(key=lambda x: x.order)
+
+        # convert lesson to my lessons
+        my_lessons = [MyLessons.model_validate(lesson) for lesson in chapter.lessons]
+
+
+        return my_lessons
+    except SQLAlchemyError as e:
+        raise internal_error
+
+
+# get list of all lessons with progress
+async def get_lessons_progress(chapter_id: int, user: User, session: SessionDep):
+    # get list of lessons
+    lessons = await get_lessons(chapter_id, session)
+
+    lesson_ids = [lesson.id for lesson in lessons]
+    quiz_ids = []
+    for lesson in lessons:
+        quiz_ids.extend(
+            [quiz.id for quiz in lesson.quizzes]
+        )
+
+    try:
+        # get list of lessons user has read
+        statement = select(User).filter(User.id == user.id).options(
+            selectinload(User.lessons), 
+            with_loader_criteria(UserLesson, UserLesson.lesson_id.in_(lesson_ids))).options(
+                selectinload(User.quizzes),
+                with_loader_criteria(UserQuiz, UserQuiz.quiz_id.in_(quiz_ids))
+                )
+
+        data = await session.execute(statement)
+        user_data = data.scalar_one_or_none()
+    except SQLAlchemyError:
+        raise internal_error
+    
+    user_lessons = user_data.lessons
+    user_quizzes = user_data.quizzes
+
+    # update lessons is_read status
+    for lesson in user_lessons:
+        for i in range(len(lessons)):
+            if lesson.lesson_id == lessons[i].id:
+                lessons[i].is_read = lesson.is_completed
+    
+    # update quizzes is_completed and scores
+    for quiz in user_quizzes:
+        for i in range(len(lessons)):
+            for j in range(len(lessons[i].quizzes)):
+                if quiz.quiz_id == lessons[i].quizzes[j].id:
+                    lessons[i].quizzes[j].is_completed = quiz.is_completed
+                    lessons[i].quizzes[j].score = quiz.score
+
+
+    return lessons
