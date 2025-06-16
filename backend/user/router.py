@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.exc import SQLAlchemyError
 from auth.utils import get_user_by_username
-from models import User, Course, UserCourse
+from models import User, Course, UserCourse, UserChapter, UserLesson, UserQuiz, Chapter, Lesson
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload, load_only
+from sqlalchemy.orm import selectinload, load_only, with_loader_criteria
 from database import SessionDep
 from user.utils import (
     get_course_list_progress, get_my_course_list, get_chapters_progress,
-    get_lessons_progress, get_lesson
+    get_lessons_progress, get_lesson, enroll_to_course
     )
 
 router = APIRouter(
@@ -74,6 +75,22 @@ async def lesson(lesson_id: int, session: SessionDep, user: User = Depends(get_u
     }
 
 
+@router.post("/enroll/{course_id}")
+async def enroll(course_id: int, session: SessionDep, user: User = Depends(get_user_by_username)):
+    user_course = await enroll_to_course(course_id, user, session)
+
+    if not user_course:
+        message = f"User has successfully enrolled to course with id:{course_id}"
+    else:
+        message = f"User already enrolled to course with id:{course_id}"
+    return {
+            "details":{
+                "success": True,
+                "messsage": message,
+                "data": None,
+            }
+        }
+
 '''
 List of endpoints to prepare
 =============================
@@ -88,6 +105,7 @@ List of endpoints to prepare
 * load all user info required for entering the main page 
 =========
 
+6. enroll to course === DONE
 6. read lesson -> update progress in database
 7. solve quiz -> update progress in database
 8. send comment to lesson or quiz

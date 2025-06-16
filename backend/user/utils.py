@@ -1,4 +1,4 @@
-from models import User, Course, UserCourse, Chapter, Lesson, CommentLesson, UserLesson, UserQuiz
+from models import User, Course, UserCourse, Chapter, Lesson, CommentLesson, UserLesson, UserQuiz, UserChapter
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import load_only, selectinload, joinedload, with_loader_criteria
@@ -200,4 +200,68 @@ async def get_lesson(user: User, lesson_id: int, session: SessionDep):
 
     return full_lesson
 
+
+async def enroll_to_course(course_id: int, user:User, session: SessionDep):
+    try:
+        # check if user already enrolled
+        statement = select(User).filter(User.id == user.id).options(
+            selectinload(User.courses), with_loader_criteria(UserCourse, UserCourse.course_id == course_id))
+        data = await session.execute(statement)
+        user_courses = data.scalar_one_or_none().courses
+
+        if not user_courses:
+            statement = select(Course).filter(Course.id == course_id).options(
+                selectinload(Course.chapters).options(selectinload(Chapter.lessons).options(
+                    selectinload(Lesson.quizzes)
+                )))
+            data = await session.execute(statement)
+            course = data.scalar_one_or_none()
+
+            new_course = UserCourse(
+                user_id=user.id,
+                course_id = course.id,
+                chapter_total = len(course.chapters),
+                chapter_completed = 0,
+                is_completed = False,
+                progress = 0
+            )
+
+            session.add(new_course)
+
+            for chapter in course.chapters:
+                new_chapter = UserChapter(
+                    user_id = user.id,
+                    chapter_id = chapter.id,
+                    lesson_total = len(chapter.lessons),
+                    lesson_completed = 0,
+                    is_completed = False,
+                    progress = 0
+                )
+                session.add(new_chapter)
+
+                for lesson in chapter.lessons:
+                    new_lesson = UserLesson(
+                        user_id = user.id,
+                        lesson_id = lesson.id,
+                        is_completed = False,
+                        progress = 0
+                    )
+
+                    session.add(lesson)
+
+                    for quiz in lesson.quizzes:
+                        new_quiz = UserQuiz(
+                            user_id = user.id,
+                            quiz_id = quiz.id,
+                            score = 0,
+                            is_completed = False
+                        )
+
+                        session.add(new_quiz)
+        
+        await session.commit()
+    except SQLAlchemyError:
+        raise internal_error
+    
+    return user_courses
 
