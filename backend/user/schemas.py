@@ -16,7 +16,7 @@ class MyCourses(BaseModel):
 class MyChapters(BaseModel):
     id: int
     title: str
-    order: int
+    order: int | None
     progress: float = 0.0
 
     class Config:
@@ -26,7 +26,7 @@ class MyChapters(BaseModel):
 class MyLessonMaterials(BaseModel):
     material_type: str
     material_content: str
-    order: int
+    order: int | None
 
     class Config:
         from_attributes = True
@@ -48,6 +48,7 @@ class CommentUser(BaseModel):
     username: str
     first_name: str
     last_name: str
+    profile_picture: str | None
 
     class Config:
         from_attributes = True
@@ -67,10 +68,22 @@ class Comment(BaseModel):
 class MyLessons(BaseModel):
     id: int
     title: str
-    order: int
+    order: int | None
     description: str
     is_read: bool = False
     quizzes: List[MyQuizzes]
 
+    class Config:
+        from_attributes = True
+
+
+class MyLesson(BaseModel):
+    id: int
+    title: str
+    description: str
+    materials: List[MyLessonMaterials]
+    comments: List[Comment]
+
+    
     class Config:
         from_attributes = True

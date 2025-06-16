@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import load_only, selectinload, joinedload, with_loader_criteria
 from utils import internal_error
 from typing import List, Any
-from user.schemas import MyCourses, MyChapters, MyLessons, MyLessonMaterials
+from user.schemas import MyCourses, MyChapters, MyLessons, MyLesson
 from fastapi import Depends
 from database import SessionDep, Base
 
@@ -74,7 +74,7 @@ async def get_chapters(course_id: int, session: SessionDep) -> MyChapters | None
         data = await session.execute(statement)
         course = data.scalar_one_or_none()
 
-        course.chapters.sort(key=lambda x: x.order)
+        course.chapters.sort(key=lambda x: x.order if x.order else 1)
 
         my_cahpters = [MyChapters.model_validate(chapter) for chapter in course.chapters]
 
@@ -111,7 +111,7 @@ async def get_lessons(chapter_id: int, session: SessionDep) -> List[MyLessons]:
         chapter = data.scalar_one_or_none()
 
         # sort all lessons based on order
-        chapter.lessons.sort(key=lambda x: x.order)
+        chapter.lessons.sort(key=lambda x: x.order if x.order else 1)
 
         # convert lesson to my lessons
         my_lessons = [MyLessons.model_validate(lesson) for lesson in chapter.lessons]
@@ -165,5 +165,39 @@ async def get_lessons_progress(chapter_id: int, user: User, session: SessionDep)
                     lessons[i].quizzes[j].is_completed = quiz.is_completed
                     lessons[i].quizzes[j].score = quiz.score
 
-
     return lessons
+
+# load lesson with comments
+async def get_lesson(user: User, lesson_id: int, session: SessionDep):
+    try:
+        statement = select(Lesson).filter(Lesson.id == lesson_id).options(
+            selectinload(Lesson.materials)).options(
+                selectinload(Lesson.comments).options(selectinload(CommentLesson.user))
+            )
+
+        data = await session.execute(statement)
+        lesson = data.scalar_one_or_none()
+
+        full_lesson = MyLesson.model_validate(lesson)
+
+        # update database, mark lesson as reaad by user
+        statement = select(UserLesson).filter(
+            UserLesson.user_id == user.id, 
+            UserLesson.lesson_id == lesson_id
+        )
+        data = await session.execute(statement)
+        user_lesson = data.scalar_one_or_none()
+
+        if user_lesson:
+            if not user_lesson.is_completed:
+                user_lesson.is_completed = True
+            
+            await session.commit()
+        else:
+            raise internal_error
+    except SQLAlchemyError:
+        raise internal_error
+
+    return full_lesson
+
+

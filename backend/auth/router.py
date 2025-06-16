@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Response, Request, HTTPException, status, BackgroundTasks
-from auth.schemas import UserLogin, UserSignUp
+from auth.schemas import UserLogin, UserSignUp, BaseUser
 from models import User
 from database import SessionDep
 from sqlalchemy import select
@@ -129,19 +129,11 @@ async def sign_out(response: Response):
 # get current user
 @router.get("/active_user")
 async def active_user(user = Depends(get_user_by_username)):
-    user_data = user.__dict__
-    user_data.pop("is_admin")
-    user_data.pop("is_active")
-    user_data.pop("created_at")
-    user_data.pop("updated_at")
-    user_data.pop("id")
-    user_data.pop("password_hash")
-
     return {
-        "detail":{
+        "details": {
             "success": True,
-            "message": "Current active user found",
-            "data": user_data
+            "message": f"User is authenticated",
+            "data": BaseUser.model_validate(user)
         }
     }
 

@@ -12,6 +12,20 @@ class UserSignUp(BaseModel):
     gender: bool = Field(description="gender - True = male; False = female", examples=[True])
     password: str = Field(max_length=255, description="password", examples=["password"])
 
+
+class BaseUser(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+    first_name: str
+    last_name: str
+    middle_name: str | None
+    date_of_birth: date
+    gender: bool
+
+    class Config:
+        from_attributes = True
+
 class UserLogin(BaseModel):
     username: str
     password: str
