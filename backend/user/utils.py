@@ -180,7 +180,7 @@ async def get_lesson(user: User, lesson_id: int, session: SessionDep):
 
         full_lesson = MyLesson.model_validate(lesson)
 
-        # update database, mark lesson as reaad by user
+        # update database, mark lesson as read by user
         statement = select(UserLesson).filter(
             UserLesson.user_id == user.id, 
             UserLesson.lesson_id == lesson_id
@@ -192,10 +192,8 @@ async def get_lesson(user: User, lesson_id: int, session: SessionDep):
             if not user_lesson.is_completed:
                 user_lesson.is_completed = True
             
-            await session.commit()
-        else:
-            raise internal_error
-    except SQLAlchemyError:
+                await session.commit()
+    except SQLAlchemyError as e:
         raise internal_error
 
     return full_lesson
