@@ -9,8 +9,3 @@ app.include_router(guest_router, prefix="/api")
 app.include_router(user_router, prefix="/api")
 
 
-# testing app
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
